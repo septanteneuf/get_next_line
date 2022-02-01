@@ -5,107 +5,103 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: bbourcy@student.42lausanne.ch              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/01/12 10:24:17 by bbourcy           #+#    #+#             */
-/*   Updated: 2022/01/24 17:26:22 by bbourcy          ###   ########.fr       */
+/*   Created: 2022/02/01 11:50:54 by bbourcy           #+#    #+#             */
+/*   Updated: 2022/02/01 16:38:22 by bbourcy          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-t_file	*find_fd(t_file **start, int fd)
+//supprime la ligne du buf
+char	*ft_shrink_buffer(char *buf, char *line)
 {
-	t_file	*prec;
-	t_file	*tmp;
+	char	*newbuf;
+	int		line_len;
 
-	if (*start)
+	if (!buf || !line)
+		return (buf);
+	line_len = ft_strlen(line);
+	if ((int)ft_strlen(buf) == line_len)
 	{
-		if ((*start)->fd == fd)
-		{
-			tmp = *start;
-			*start = (*start)->next;
-			return (tmp);
-		}
-		prec = *start;
-		while (prec->next)
-		{
-			if (prec->next->fd == fd)
-			{
-				tmp = prec->next;
-				prec->next = tmp->next;
-				return (tmp);
-			}
-			prec = prec->next;
-		}
+		free(buf);
+		return (NULL);
 	}
-	return (NULL);
+	newbuf = ft_substr(buf, line_len, ft_strlen(buf) - line_len);
+	free(buf);
+	return (newbuf);
 }
 
-int		read_file(t_file **start, char *buf, int fd)
+//relis le fd et l ajoute au buf
+char	*ft_expand_buffer(char *buf, int fd)
 {
-	t_file	*tmp;
-	int		len;
+	char	*newbuf;
+	int		newlen;
+	char	*str;
 
-	if ((len = read(fd, buf, 0)) != 0)
+	str = ft_newread(fd);
+	if (!str)
+		return (NULL);
+	if (!str[0])
 	{
-		if ((tmp = find_fd(start, fd)))
-		{
-			free(tmp->buf);
-			free(tmp);
-		}
-		return (len);
+		free(str);
+		return (buf);
 	}
-	if ((tmp = find_fd(start, fd)))
-	{
-		buf = ft_strcpy(buf, tmp->buf);
-		free(tmp->buf);
-		free(tmp);
-		return (ft_strlen(buf));
-	}
-	len = read(fd, buf, BUFFER_SIZE);
-	buf[len] = '\0';
-	return (len);
+	if (!buf)
+		return (str);
+	newlen = ft_strlen(buf) + ft_strlen(str);
+	newbuf = malloc(newlen + 1);
+	if (!newbuf)
+		return (NULL);
+	ft_strlcpy(newbuf, buf, newlen + 1);
+	ft_strlcat(newbuf, str, newlen + 1);
+	free(buf);
+	free(str);
+	return (newbuf);
 }
 
-void	keep_line(t_file **start, int fd, char *end_buf)
+//relis le FD et retourne la str lue
+char	*ft_newread(int fd)
 {
-	t_file	*new;
+	char	*str;
+	int		nbytes;
 
-	if (*end_buf)
+	str = malloc(BUFFER_SIZE + 1);
+	if (!str)
+		return (NULL);
+	nbytes = read(fd, str, BUFFER_SIZE);
+	if (nbytes < 0)
 	{
-		if (!(new = malloc(sizeof(t_file))))
-			return ;
-		new->fd = fd;
-		if (!(new->buf = ft_strdup(end_buf)))
-			return ;
-		new->next = *start;
-		*start = new;
+		free(str);
+		return (NULL);
 	}
+	str[nbytes] = '\0';
+	return (str);
 }
 
-int		get_next_line(int fd, char **line)
+char	*get_next_line(int fd)
 {
-	static t_file	*start = NULL;
-	char			buf[BUFFER_SIZE + 1];
-	int				i;
-	int				len;
-	int				join;
+	static char	*buf[4096];
+	char		*line;
+	size_t		old_len;
 
-	if (fd < 0 || !line)
-		return (-1);
-	join = 0;
-	while ((len = read_file(&start, buf, fd)) > 0)
+	if (fd < 0 || fd > 4095 || BUFFER_SIZE < 0)
+		return (NULL);
+	line = NULL;
+	if (ft_strchr_i(buf[fd], '\n') == -1)
 	{
-		i = 0;
-		while (i < len && buf[i] != '\n')
-			i++;
-		if (buf[i] == '\n' && !(buf[i] = '\0'))
-			keep_line(&start, fd, buf + i + 1);
-		*line = (join) ? ft_strjoin_free(line, buf) : ft_strdup(buf);
-		join = 1;
-		if (i < len)
-			return (1);
+		old_len = ft_strlen(buf[fd]);
+		buf[fd] = ft_expand_buffer(buf[fd], fd);
+		if (old_len == ft_strlen(buf[fd]) && buf[fd])
+			line = ft_substr(buf[fd], 0, ft_strlen(buf[fd]));
 	}
-	if (!(*line))
-		*line = ft_strdup("");
-	return (len);
+	if (!buf[fd])
+		return (NULL);
+	if (!line && ft_strchr_i(buf[fd], '\n') != -1)
+		line = ft_substr(buf[fd], 0, ft_strchr_i(buf[fd], '\n') + 1);
+	if (line)
+	{
+		buf[fd] = ft_shrink_buffer(buf[fd], line);
+		return (line);
+	}
+	return (get_next_line(fd));
 }

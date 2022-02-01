@@ -1,109 +1,104 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line_bonus.c                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: bbourcy@student.42lausanne.ch              +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/02/01 16:18:25 by bbourcy           #+#    #+#             */
+/*   Updated: 2022/02/01 16:35:20 by bbourcy          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "get_next_line_bonus.h"
-#include "stdio.h"
 
-char	*ft_substr(char const *s, unsigned int start, size_t len)
+char	*ft_shrink_buffer(char *buf, char *line)
 {
-	unsigned int	max;
-	char			*sub;
+	char	*newbuf;
+	int		line_len;
 
-	if (!s)
-		return (NULL);
-	max = len;
-	if ((int)(ft_strlen((char *)s) - start) < (int)max)
-		max = (int)(ft_strlen((char *)s)) - start;
-	if ((int) max < 0)
-		max = 0;
-	if (max == 0)
-		return (NULL);
-	sub = malloc((max + 1) * sizeof(char));
-	if (!sub)
-		return (NULL);
-	ft_strlcpy(sub, (char *)s + start, max + 1);
-	return (sub);
-}
-
-char	*ft_read_nl(int fd, ssize_t size)
-{
-	t_rd			r;
-
-	r.fc = malloc(sizeof(char) * 1);
-	if (r.fc)
-		r.fc[0] = 0;
-	while (r.fc)
+	if (!buf || !line)
+		return (buf);
+	line_len = ft_strlen(line);
+	if ((int)ft_strlen(buf) == line_len)
 	{
-		r.tmp = malloc(sizeof(char) * (size + 1));
-		if (!r.tmp)
-			break ;
-		r.rd = read(fd, r.tmp, size);
-		if (r.rd == -1)
-			break ;
-		r.tmp[r.rd] = 0;
-		r.fc = ft_strjoin(r.fc, r.tmp);
-		if (!r.fc || r.rd < size || ft_strchr(r.fc, '\n'))
-			break ;
+		free(buf);
+		return (NULL);
 	}
-	if (r.tmp && r.rd < 0)
-		free(r.tmp);
-	if (r.rd >= 0)
-		return (r.fc);
-	if (r.fc)
-		free(r.fc);
-	return (NULL);
+	newbuf = ft_substr(buf, line_len, ft_strlen(buf) - line_len);
+	free(buf);
+	return (newbuf);
 }
 
-char	*ft_ls_last(t_ls **ls, int fd)
+char	*ft_expand_buffer(char *buf, int fd)
 {
-	char	*ct;
-	t_ls	*last;
+	char	*newbuf;
+	int		newlen;
+	char	*str;
 
-	last = *ls;
-	if (!last)
+	str = ft_newread(fd);
+	if (!str)
 		return (NULL);
-	if (last->fd == fd)
+	if (!str[0])
 	{
-		ct = last->ct;
-		free(last);
-		*ls = NULL;
-		return (ct);
-	}	
-	return (ft_ls_last(&(last->nt), fd));
+		free(str);
+		return (buf);
+	}
+	if (!buf)
+		return (str);
+	newlen = ft_strlen(buf) + ft_strlen(str);
+	newbuf = malloc(newlen + 1);
+	if (!newbuf)
+		return (NULL);
+	ft_strlcpy(newbuf, buf, newlen + 1);
+	ft_strlcat(newbuf, str, newlen + 1);
+	free(buf);
+	free(str);
+	return (newbuf);
 }
 
-char	*ft_ls_new(t_ls **ls, int fd, char *fc)
+char	*ft_newread(int fd)
 {
-	t_ls	*last;
-	char	*nl;
-	char	*ret;
+	char	*str;
+	int		nbytes;
 
-	nl = ft_strchr(fc, '\n');
-	if (nl)
+	str = malloc(BUFFER_SIZE + 1);
+	if (!str)
+		return (NULL);
+	nbytes = read(fd, str, BUFFER_SIZE);
+	if (nbytes < 0)
 	{
-		last = malloc(sizeof(t_ls));
-		last->fd = fd;
-		last->ct = ft_substr(fc, nl - fc + 1, ft_strlen(fc));
-		last->nt = *ls;
-		*ls = last;
-		ret = ft_substr(fc, 0, nl - fc + 1);
-		free(fc);
-		return (ret);
+		free(str);
+		return (NULL);
 	}
-	ret = ft_substr(fc, 0, ft_strlen(fc));
-	free(fc);
-	return (ret);
+	str[nbytes] = '\0';
+	return (str);
 }
 
 char	*get_next_line(int fd)
 {
-	char		*ret;
-	char		*fc;
-	static t_ls	*ls;
+	static char	*buf[4096];
+	char		*line;
+	size_t		old_len;
 
-	if (BUFFER_SIZE == 0)
+	if (fd < 0 || fd > 4095 || BUFFER_SIZE < 0)
 		return (NULL);
-	ret = NULL;
-	fc = ft_read_nl(fd, BUFFER_SIZE);
-	fc = ft_strjoin(ft_ls_last(&ls, fd), fc);
-	if (!fc)
+	line = NULL;
+	if (ft_strchr_i(buf[fd], '\n') == -1)
+	{
+		old_len = ft_strlen(buf[fd]);
+		buf[fd] = ft_expand_buffer(buf[fd], fd);
+		if (old_len == ft_strlen(buf[fd]) && buf[fd])
+			line = ft_substr(buf[fd], 0, ft_strlen(buf[fd]));
+	}
+	if (!buf[fd])
 		return (NULL);
-	return (ft_ls_new(&ls, fd, fc));
+	if (!line && ft_strchr_i(buf[fd], '\n') != -1)
+		line = ft_substr(buf[fd], 0, ft_strchr_i(buf[fd], '\n') + 1);
+	if (line)
+	{
+		buf[fd] = ft_shrink_buffer(buf[fd], line);
+		return (line);
+	}
+	return (get_next_line(fd));
 }

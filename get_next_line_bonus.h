@@ -3,36 +3,37 @@
 /*                                                        :::      ::::::::   */
 /*   get_next_line_bonus.h                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: asaccard <asaccard@student.42lyon.fr>      +#+  +:+       +#+        */
+/*   By: bbourcy@student.42lausanne.ch              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2021/11/09 14:56:34 by asaccard          #+#    #+#             */
-/*   Updated: 2021/11/12 04:17:18 by asaccard         ###   ########lyon.fr   */
+/*   Created: 2022/02/01 16:20:10 by bbourcy           #+#    #+#             */
+/*   Updated: 2022/02/01 16:35:40 by bbourcy          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GET_NEXT_LINE_BONUS_H
 # define GET_NEXT_LINE_BONUS_H
-# include <stdlib.h>
+
 # include <unistd.h>
+# include <stdlib.h>
+# include <fcntl.h>
 
-typedef struct s_ls
-{
-	int				fd;
-	char			*ct;
-	struct s_ls		*nt;
-}	t_ls;
+# ifndef BUFFER_SIZE
 
-typedef struct s_rd
-{
-	int		rd;
-	char	*tmp;
-	char	*fc;
-}	t_rd;
+#  define BUFFER_SIZE 42
 
-unsigned int	ft_strlcpy(char *dest, char *src, unsigned int size);
-char			*get_next_line(int fd);
-char			*ft_strchr(char *str, int c);
-char			*ft_strjoin(const char *s1, const char *s2);
-size_t			ft_strlen(char *str);
+# endif
+
+//gnl_utils
+size_t	ft_strlen(const char *s);
+char	*ft_substr(char const *s, unsigned int start, size_t len);
+size_t	ft_strlcpy(char *dst, const char *src, size_t size);
+int		ft_strchr_i(const char *s, int c);
+size_t	ft_strlcat(char *dst, const char *src, size_t dstsize);
+
+//gnl
+char	*ft_shrink_buffer(char *buf, char *line);
+char	*ft_expand_buffer(char *buf, int fd);
+char	*ft_newread(int fd);
+char	*get_next_line(int fd);
 
 #endif

@@ -5,115 +5,119 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: bbourcy@student.42lausanne.ch              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/01/12 10:25:08 by bbourcy           #+#    #+#             */
-/*   Updated: 2022/01/24 17:27:10 by bbourcy          ###   ########.fr       */
+/*   Created: 2022/02/01 11:59:59 by bbourcy           #+#    #+#             */
+/*   Updated: 2022/02/01 16:38:07 by bbourcy          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-size_t    ft_strlen(const char *s)
+//retourne la longueur de la string
+size_t	ft_strlen(const char *s)
 {
-    size_t    count;
+	int	count;
 
-    count = 0;
-    while (s[count])
-    {
-        if (s[count] != '\0')
-            count++;
-    }
-    return (count);
+	count = 0;
+	if (!s)
+		return (0);
+	while (s[count] != '\0')
+		count++;
+	return (count);
 }
 
-char    *ft_strjoin(char const *s1, char const *s2)
+//Alloue assez de memoire (longueur de len) pour faire une copie depuis start
+char	*ft_substr(char const *s, unsigned int start, size_t len)
 {
-    size_t    i;
-    char    *dst;
-    size_t    l1;
-    size_t    l2;
+	char	*dst;
+	size_t	i;
 
-    if (!s1 || !s2)
-        return (NULL);
-    l1 = ft_strlen(s1);
-    l2 = ft_strlen(s2);
-    i = 0;
-    dst = malloc(l1 + l2 + 1);
-    if (!dst)
-        return (NULL);
-    while (i < l1)
-    {
-        dst[i] = s1[i];
-        i++;
-    }
-    while (i < (l1 + l2 + 1))
-    {
-        dst[i] = s2[i - l1];
-        i++;
-    }
-	free(s1)
-    return (dst);
-}
-
-
-
-size_t		ft_strlen(const char *s)
-{
-	size_t len;
-
-	len = 0;
-	while (s && s[len])
-		len++;
-	return (len);
-}
-
-char		*ft_strcpy(char *dst, const char *src)
-{
-	int i;
-
+	if (!s)
+		return (NULL);
 	i = 0;
-	while (src && src[i])
+	if (start >= ft_strlen(s))
 	{
-		dst[i] = src[i];
+		dst = malloc (0);
+		*dst = '\0';
+		return (dst);
+	}
+	else if (len < (ft_strlen(s) + 1 - start))
+		dst = malloc(len + 1);
+	else
+		dst = malloc (ft_strlen(s) + 1 - start);
+	if (!dst)
+		return (NULL);
+	while (i < len && s[i + start] != '\0')
+	{
+		dst[i] = s[i + start];
 		i++;
 	}
 	dst[i] = '\0';
 	return (dst);
 }
 
-char		*ft_strdup(const char *s1)
+//copie de la src vers dest avec \0
+size_t	ft_strlcpy(char *dst, const char *src, size_t size)
 {
-	char		*dup;
-	size_t		i;
+	unsigned int	i;
+	size_t			size_src;
 
 	i = 0;
-	if (!(dup = (char *)malloc(sizeof(char *) * ft_strlen(s1) + 1)))
-		return (NULL);
-	while (s1 && s1[i])
+	if (src == NULL)
+		return (0);
+	size_src = ft_strlen(src);
+	if ((int)size < 0)
+		size = size_src + 1;
+	if (size >= 2 && size_src != 0)
 	{
-		dup[i] = ((char *)s1)[i];
-		i++;
+		while (i < size - 1)
+		{
+			if (i < size_src)
+				dst[i] = src[i];
+			else if (i == size_src)
+				dst[i] = '\0';
+			i++;
+		}
 	}
-	dup[i] = '\0';
-	return (dup);
+	if (size != 0)
+		dst[i] = '\0';
+	return (size_src);
 }
 
-char		*ft_strjoin_free(char **s1, char *s2)
+//recherche le premier caractere d une nouvelle string
+int	ft_strchr_i(const char *s, int c)
 {
-	char	*r;
-	char	*c1;
-	char	*c2;
-	size_t	i;
+	unsigned char	c_unsigned;
+	int				i;
 
-	if (!(r = (char *)malloc(ft_strlen(*s1) + ft_strlen(s2) + 1)))
-		return (NULL);
-	c1 = *s1;
-	c2 = s2;
-	i = 0;
-	while (*c1)
-		r[i++] = *(c1++);
-	while (*c2)
-		r[i++] = *(c2++);
-	r[i] = '\0';
-	free(*s1);
-	return (r);
+	i = ft_strlen(s) - BUFFER_SIZE;
+	if (i < 0)
+		i = 0;
+	if (!s)
+		return (-1);
+	c_unsigned = (unsigned char)c;
+	while (s[i] != '\0')
+	{
+		if (s[i] == c_unsigned)
+			return (i);
+		i++;
+	}
+	return (-1);
+}
+
+//concatener 2 string avec une limite de x caracteres
+size_t	ft_strlcat(char *dst, const char *src, size_t dstsize)
+{
+	size_t	sizedst;
+	size_t	sizesrc;
+
+	sizedst = ft_strlen(dst);
+	sizesrc = ft_strlen(src);
+	if (dstsize == 0 || sizedst >= dstsize)
+		return (sizesrc + dstsize);
+	while (*dst != '\0' && --dstsize > 0)
+		dst++;
+	while (*src != '\0' && --dstsize > 0)
+		*dst++ = *src++;
+	*dst = '\0';
+	return (sizedst + sizesrc);
 }
